@@ -12,4 +12,5 @@ class ModelAdapter:
     def save_model(self, config):
         pass
     def create_model_config(self):
+        #test
         pass
