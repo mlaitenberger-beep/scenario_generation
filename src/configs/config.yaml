@@ -8,3 +8,5 @@ data_hist_path: # .csv
 data_stress_path: # .csv 
 milestone: null
 data_root:  # .csv
+batch_size: 64
+sampling_steps: 200
