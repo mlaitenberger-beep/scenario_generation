@@ -1,4 +1,4 @@
-
+from sklearn.preprocessing import MinMaxScaler
 class InputData:
     def __init__(self, data_hist, data_stress, dtype=np.float32):
         self.data_hist = pd.read_csv(data_hist).to_numpy(dtype=dtype)

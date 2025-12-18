@@ -5,7 +5,6 @@ import sys
 from src.third_party.DiffusionTS.engine.solver import Trainer
 from src.third_party.DiffusionTS.Data.build_dataloader import build_dataloader
 from src.third_party.DiffusionTS.Utils.io_utils import load_yaml_config, instantiate_from_config
-from sklearn.preprocessing import MinMaxScaler
 from src.adapters.modelAdapter import ModelAdapter
 from src.third_party.DiffusionTS.torch.utils.data import Dataset, DataLoader
 from src.data.utils import CustomDataset, Args_Example
