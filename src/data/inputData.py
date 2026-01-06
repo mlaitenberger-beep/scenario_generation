@@ -44,7 +44,9 @@ class InputData:
             overlapping_sequences[i, :, :] = self.data_hist_rel_norm[i : i + seq_length, :]
 
         self.overlapping_sequences = overlapping_sequences
+        return self.overlapping_sequences
     
+    @staticmethod
     def normalize_to_neg_one_to_one(x):
         return x * 2 - 1
     
@@ -53,11 +55,15 @@ class InputData:
         scaler = MinMaxScaler()
         scaler.fit(self.data_hist_rel)
         data_scaled = scaler.transform(self.data_hist_rel)
-        data_scaled = normalize_to_neg_one_to_one(data_scaled)
+        data_scaled = self.normalize_to_neg_one_to_one(data_scaled)
         self.data_hist_rel_norm = data_scaled
 
-        self.data_stress_rel_norm = normalize_to_neg_one_to_one(scaler.transform(data_stress_rel))
-        return  scaler 
+        # transform stress relative changes using the same scaler
+        if self.data_stress_rel is not None:
+            self.data_stress_rel_norm = self.normalize_to_neg_one_to_one(scaler.transform(self.data_stress_rel))
+        else:
+            self.data_stress_rel_norm = None
+        return scaler
     
 
     def prepare_forcast_seq(self,stressed_features,stressed_seq_indices, len_historie):

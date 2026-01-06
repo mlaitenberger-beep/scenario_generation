@@ -1,15 +1,18 @@
-
+from adapters import ModelAdapter
 
 class Handler:
-    def __init__(self, modelAdapter,config):
-        self.modelAdapter = modelAdapter
+    def __init__(self,model,config):
+        self.modelAdapter = None
         self.config = config
+        self.modelAdapter = ModelAdapter(self.config, model)
 
-    def createScenarios(self, modelAdapter, config):
-        modelAdapter.create_model_config(config)
-        modelAdapter.load_model()
-        modelAdapter.train()
-        modelAdapter.predict()
+    def createScenarios(self, config=None):
+        """High-level flow: create model config, load data & model, train (or resume), and predict samples.
 
-    #data output
-        #Wie sollen die Daten ausgegeben werden? Als Pfad, als Dataframe, als np array? 
+        Returns the generated samples (numpy array) from the adapter.
+        """
+        self.modelAdapter.create_model_config(config)
+        self.modelAdapter.load_model()
+        self.modelAdapter.train()
+        self.modelAdapter.predict()
+        return self.modelAdapter.sample
