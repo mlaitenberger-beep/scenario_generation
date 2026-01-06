@@ -2,6 +2,9 @@ import os
 import torch
 import numpy as np
 import sys
+from data.inputData import InputData
+
+
 from src.third_party.DiffusionTS.engine.solver import Trainer
 from src.third_party.DiffusionTS.Data.build_dataloader import build_dataloader
 from src.third_party.DiffusionTS.Utils.io_utils import load_yaml_config, instantiate_from_config
@@ -12,11 +15,14 @@ from src.data.utils import CustomDataset, Args_Example
 class Diffusion_ts_adapter(ModelAdapter):
     def __init__(self, diffusionTS_config_path, config, data_hist, data_forcast):
         self.diffusionTS_config_path =  diffusionTS_config_path 
+        self.config = config
         #Daten kommen pre-processed rein
         self.data_hist = data_hist
         self.data_forcast = data_forcast
+        self.forcast_seq = None
 
-    def create_model_config(self, config):
+
+    def create_model_config(self):
        
         diffusionTS_config = load_yaml_config(self.diffusionTS_config_path)
         diffusionTS_config['model']['params']['sequence_length'] = config['sequence_length']
@@ -30,10 +36,11 @@ class Diffusion_ts_adapter(ModelAdapter):
 
     def load_model(self):
 
-        hist_dataset = CustomDataset(data = self.data_hist)
+        hist_dataset = CustomDataset(data = self.data_hist) #Format 3 dim
         dataloader = DataLoader(hist_dataset, batch_size=self.config['batch_size'], shuffle=False,num_workers=0, drop_last=True, pin_memory=True, sampler=None)
         diffusionTS_config = load_yaml_config(create_model_config(self, self.config))
         args =  Args_Example(self.diffusionTS_config_path, self.config['results_folder'])
+        #Mit Server andere Einstellung??
         device = torch.device(f'cuda:{args.gpu}' if torch.cuda.is_available() else 'cpu')
         model = instantiate_from_config(diffusionTS_config['model']).to(device)
         trainer = Trainer(config=diffusionTS_config, args=args, model=model, dataloader={'dataloader':dataloader})
@@ -49,12 +56,23 @@ class Diffusion_ts_adapter(ModelAdapter):
     def predict(self, trainer):
         seq_length, feat_num = self.config['seq_length'] , self.config['feature_size']
         #Hier Stress-Sequenz erstellen 
-        forcast_dataset = CustomDataset(self.data_forcast, regular=False, stressed_var= self.config['stressed_features'])
+        forcast_dataset = CustomDataset(self.forcast_seq, regular=False, stressed_var= self.config['stressed_features'])
         forcast_dataloader = torch.utils.data.DataLoader(forcast_dataset, batch_size=self.data_forcast.shape[0], shuffle=True, num_workers=0, pin_memory=True, sampler=None)
         samples = []
-        for _ in range(self.config['num_samples']):
-            sample, *_ = trainer.restore(forcast_dataloader, shape=[seq_length, feat_num], sampling_steps= self.config['sampling_steps'])
-            samples.append(sample)
+        num_samples = self.config['num_samples']
+        pred = np.repeat(self.forcast_seq, num_samples, axis=0)
+        forcast_dataset = CustomDataset(pred, regular=False, stressed_var= self.config['stressed_features'])
+        forcast_dataloader = torch.utils.data.DataLoader(forcast_dataset, batch_size= None, shuffle=True, num_workers=0, pin_memory=True, sampler=None)
+        sample, *_ = trainer.restore(forcast_dataloader, shape=[seq_length, feat_num], sampling_steps= self.config['sampling_steps'])
+        samples.append(sample)
         sample = np.concatenate(samples, axis=0)
 
         return sample
+    
+    def data_input(self):
+        inputData = InputData(self.config.data_hist_path,self.config.data_stress_path)
+        inputData.relative_change()
+        self.scalar = inputData.normalize()
+        inputData.create_overlapping_sequences(self.config.seq_length)
+        self.forcast_seq = inputData.prepare_forcast_seq(self.config.stressed_features,self.config.stressed_seq_indices, self.len_historie)
+
