@@ -7,7 +7,7 @@ stressed_seq_indices: [6,7,8,9,10]
 len_historie: 6
 data_hist_path: # .csv
 data_stress_path: # .csv 
-milestone: null
+milestone: c:/Users/mlaitenberger/OneDrive - Deloitte (O365D)/Desktop/Scenario_Project/scenario_generation/results/germany_boom_24/checkpoint-10.pt
 data_root:  # .csv
 batch_size: 64
 sampling_steps: 200

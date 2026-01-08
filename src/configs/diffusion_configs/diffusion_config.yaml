@@ -3,11 +3,11 @@ model:
   params:
     seq_length: 24
     feature_size: 11
-    n_layer_enc: 3
-    n_layer_dec: 3
-    d_model: 96  # increased for 11 features
-    timesteps: 250
-    sampling_timesteps: 250
+    n_layer_enc: 2
+    n_layer_dec: 2
+    d_model: 64  # increased for 11 features
+    timesteps: 500
+    sampling_timesteps: 500
     loss_type: 'l2'
     beta_schedule: 'cosine'
     n_heads: 4
@@ -18,7 +18,7 @@ model:
     padding_size: 0
 
 solver:
-  base_lr: 5.0e-5
+  base_lr: 1.0e-5
   max_epochs: 10
   results_folder: #
   gradient_accumulate_every: 4

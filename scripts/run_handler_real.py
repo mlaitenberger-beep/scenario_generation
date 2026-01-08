@@ -93,17 +93,37 @@ def main():
             np.save(npy_path, samples)
             print('Saved samples to', npy_path)
 
-            # Optionally save each sample to CSV for inspection
+            # Convert relative changes back to absolute values for plotting
             try:
+                import pandas as pd
                 samples_arr = np.asarray(samples)
-                n = samples_arr.shape[0]
+                
+                # Load historical data to get the last absolute values as starting point
+                hist_df = pd.read_csv(args.data_hist, header=0, dtype=float)
+                last_hist_values = hist_df.iloc[-1].to_numpy()[:args.feature_size]
+                
+                # Reconstruct absolute values from relative changes
+                samples_abs = np.zeros_like(samples_arr)
+                for i in range(samples_arr.shape[0]):
+                    current = last_hist_values.copy()
+                    for t in range(samples_arr.shape[1]):
+                        # Apply relative change: new_value = old_value * (1 + rel_change)
+                        current = current * (1.0 + samples_arr[i, t, :])
+                        samples_abs[i, t, :] = current
+                
+                # Save absolute values
+                abs_npy_path = os.path.join(args.results_folder, 'samples_absolute.npy')
+                np.save(abs_npy_path, samples_abs)
+                print(f'Saved absolute-value samples to {abs_npy_path}')
+                
+                # Save individual CSV files (absolute values)
+                n = samples_abs.shape[0]
                 for i in range(n):
                     csv_path = os.path.join(args.results_folder, f'sample_{i}.csv')
-                    # flatten last two dims: (seq_len, feat) -> columns
-                    np.savetxt(csv_path, samples_arr[i].reshape(samples_arr.shape[1], samples_arr.shape[2]), delimiter=',')
-                print(f'Saved {n} sample CSVs to {args.results_folder}')
+                    np.savetxt(csv_path, samples_abs[i], delimiter=',')
+                print(f'Saved {n} sample CSVs (absolute values) to {args.results_folder}')
             except Exception as e:
-                print('Failed to save individual CSVs:', e)
+                print('Failed to save absolute value samples:', e)
 
         return 0
     except Exception as e:

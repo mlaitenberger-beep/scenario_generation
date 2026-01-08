@@ -157,7 +157,16 @@ class Diffusion_ts_adapter(ModelAdapter):
 
         flat = samples.reshape(-1, feat)
         flat_01 = _unnormalize_to_zero_to_one(flat)
+        
+        # Debug: print scaler bounds and sample statistics
+        print(f"[DEBUG] Scaler min: {self.scalar.data_min_}")
+        print(f"[DEBUG] Scaler max: {self.scalar.data_max_}")
+        print(f"[DEBUG] Scaler range (max - min): {self.scalar.data_max_ - self.scalar.data_min_}")
+        print(f"[DEBUG] Sample min (after unnormalize): {flat_01.min()}, max: {flat_01.max()}")
+        
         denorm_flat = self.scalar.inverse_transform(flat_01)
+        
+        print(f"[DEBUG] Denormalized min: {denorm_flat.min()}, max: {denorm_flat.max()}")
         denorm = denorm_flat.reshape(samples.shape)
         return denorm
 
