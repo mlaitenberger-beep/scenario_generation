@@ -1,4 +1,4 @@
-from adapters import ModelAdapter
+from adapters.modelAdapter import ModelAdapter
 
 class Handler:
     def __init__(self,model,config):
@@ -15,4 +15,5 @@ class Handler:
         self.modelAdapter.load_model()
         self.modelAdapter.train()
         self.modelAdapter.predict()
-        return self.modelAdapter.sample
+        # denormalize back to original scale
+        return self.modelAdapter.data_output()

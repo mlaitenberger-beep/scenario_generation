@@ -1,6 +1,5 @@
 import os
 from data.inputData import InputData
-from adapters import Diffusion_ts_adapter
 
 class ModelAdapter:
     def __init__(self, config, model):
@@ -10,6 +9,7 @@ class ModelAdapter:
         self.adapter = None
         self.trainer = None
         self.sample = None
+        self.sample_denorm = None
         self.scalar = None
 
         # instantiate model-specific adapter
@@ -17,6 +17,8 @@ class ModelAdapter:
             # allow override via config, otherwise use default diffuse config path in repo
             default_cfg = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'configs', 'diffusion_configs', 'diffusion_config.yaml'))
             diffusion_cfg_path = self.config.get('diffusion_config_path', default_cfg)
+            # import here to avoid circular import during module import time
+            from .diffusion_ts_adapter import Diffusion_ts_adapter
             self.adapter = Diffusion_ts_adapter(diffusion_cfg_path, self.config)
         
     def load_model(self):
@@ -39,7 +41,6 @@ class ModelAdapter:
         self.model_config = self.adapter.create_model_config()
         return self.model_config
     def data_output(self):
-        #sample liegt komplet normalisiert vor 
-        #rück normalisieren
-        #als csv abspeichern 
-        pass
+        # Convert normalized model outputs back to original scale
+        self.sample_denorm = self.adapter.data_output(self.sample)
+        return self.sample_denorm

@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from src.third_party.DiffusionTS.torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader
 import torch
 
 
