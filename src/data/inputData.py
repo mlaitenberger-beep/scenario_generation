@@ -3,9 +3,10 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 
 class InputData:
-    def __init__(self, data_hist, data_stress, dtype=np.float32):
-        self.data_hist = pd.read_csv(data_hist).to_numpy(dtype=dtype)
-        self.data_stress = pd.read_csv(data_stress).to_numpy(dtype=dtype)
+    def __init__(self, data_hist, data_stress):
+        # Read CSVs with first row as header; convert to numpy arrays with float dtype
+        self.data_hist = pd.read_csv(data_hist, header=0, dtype=float).to_numpy()
+        self.data_stress = pd.read_csv(data_stress, header=0, dtype=float).to_numpy()
         self.data_hist_rel = None
         self.data_stress_rel = None #Stress doch direkt als rel änderung?!
         self.data_hist_rel_norm = None
