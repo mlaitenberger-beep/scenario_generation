@@ -30,7 +30,7 @@ def main():
     parser.add_argument("--samples-path", required=True, help="Path to samples.npy or samples_absolute.npy produced by run_handler_real.py")
     parser.add_argument("--hist-csv", required=True, help="Path to historical data CSV")
     parser.add_argument("--history-points", type=int, default=24, help="Number of historical points to show before forecasts")
-    parser.add_argument("--overlap", type=int, default=6, help="Overlap between history and generated forecast")
+    parser.add_argument("--overlap", type=int, default=0, help="Overlap between history and generated forecast")
     parser.add_argument("--limit-samples", type=int, default=10, help="Max number of generated samples to plot")
     parser.add_argument("--feature-names", default=None, help="Comma-separated feature names; defaults to CSV headers or feature_{i}")
     parser.add_argument("--output-pdf", default=None, help="Output PDF path; defaults beside samples.npy as samples_plot.pdf")
