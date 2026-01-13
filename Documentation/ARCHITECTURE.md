@@ -32,13 +32,13 @@ Generated Scenarios (denormalized outputs)
 **Key Responsibilities**:
 - Accepts user configuration (data paths, model parameters, stress conditions)
 - Delegates model-specific operations to `ModelAdapter`
-- Returns denormalized scenario samples ready for downstream use
+- Returns scenario samples ready for downstream use
 
 **Public Interface**:
 ```python
 handler = Handler(model='diffusion_ts', config={...})
 scenarios = handler.createScenarios()
-# Returns: numpy array (num_samples, seq_length, num_features)
+
 ```
 
 **Workflow Steps**:
@@ -61,7 +61,7 @@ scenarios = handler.createScenarios()
 
 **Supported Models**:
 - `"diffusion_ts"` → `Diffusion_ts_adapter`
-- _(extensible: add new models by creating additional adapters)_
+- _(working...)_
 
 **Public Methods**:
 | Method | Description |
@@ -147,7 +147,17 @@ Denormalized relative changes
 
 ### 5. **Third-Party: Diffusion-TS** (`src/third_party/DiffusionTS/`)
 
-**Purpose**: External diffusion-based time-series generation model (research code).
+
+**Device Selection**: The adapter automatically selects the best available compute device:
+```python
+# In diffusion_ts_adapter.py
+device = torch.device(f'cuda:{args.gpu}' if torch.cuda.is_available() else 'cpu')
+model = model.to(device)  # Moves model to GPU or CPU
+```
+
+**GPU Utilization Check**:
+- Training logs show: `"Using device: cuda:0"` (GPU) or `"Using device: cpu"` (CPU)
+- Monitor via: `watch -n 1 nvidia-smi` in separate terminal
 
 **Key Components**:
 - `engine/solver.py`: `Trainer` class for training/inference
@@ -332,59 +342,8 @@ Subclass `InputData` and override `relative_change()`, `normalize()`, or `prepar
 - **Temporal context**: Model learns dependencies across different time windows
 - **Standard practice**: Common in time-series forecasting (sliding window)
 
----
 
-## Troubleshooting
 
-### Issue: `FileNotFoundError: checkpoint-10.pt`
-**Cause**: Trainer appends `_{seq_length}` to `results_folder`. If you pass `results/germany_boom_24` and `seq_length=24`, it looks for `results/germany_boom_24_24/`.
 
-**Solution**: Pass base folder name without suffix: `--results-folder results/germany_boom`
-
-### Issue: Generated samples are all near zero
-**Cause**: Plotting relative changes instead of absolute values.
-
-**Solution**: Use `samples_absolute.npy` with `--use-absolute` flag in plot script.
-
-### Issue: `stressed_seq_indices required when data_stress is provided`
-**Cause**: Stress conditioning requires specifying which time indices and features are stressed.
-
-**Solution**: Add `--stressed-features "0,1,2"` and `--stressed-seq-indices "12,13,...,23"` to CLI.
-
----
-
-## Dependencies
-
-- **Python 3.8+**
-- **PyTorch 2.0+** (for Diffusion-TS)
-- **NumPy, Pandas, scikit-learn** (data processing)
-- **Matplotlib** (plotting)
-- **PyYAML** (config loading)
-
-Install via:
-```bash
-pip install torch numpy pandas scikit-learn matplotlib pyyaml
-```
-
----
-
-## Future Enhancements
-
-1. **Probabilistic metrics**: Add quantile-based validation (e.g., coverage of historical extremes)
-2. **Multi-horizon forecasting**: Support variable-length forecasts
-3. **Conditional guidance**: Expose diffusion classifier-free guidance strength
-4. **Ensemble generation**: Combine multiple checkpoints or models
-5. **Real-time inference**: Optimize for low-latency scenario generation
-6. **Alternative models**: Integrate GANs, VAEs, or transformer-based generators
-
----
-
-## References
-
-- **Diffusion-TS Paper**: [Link to original paper if available]
-- **MinMaxScaler**: [scikit-learn documentation](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.MinMaxScaler.html)
-- **Diffusion Models**: Ho et al., "Denoising Diffusion Probabilistic Models" (2020)
-
----
 
 **Last Updated**: January 13, 2026

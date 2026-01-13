@@ -7,70 +7,87 @@ Complete step-by-step instructions for generating and visualizing macroeconomic 
 
 ## Table of Contents
 
-1. [Prerequisites](#prerequisites)
-2. [Installation](#installation)
 3. [Data Preparation](#data-preparation)
 4. [Running Your First Scenario](#running-your-first-scenario)
 5. [Advanced Usage](#advanced-usage)
 6. [Interpreting Results](#interpreting-results)
 7. [Common Workflows](#common-workflows)
-8. [FAQ](#faq)
 
 ---
 
-## Prerequisites
-
-### System Requirements
-
-- **Operating System**: Windows 10+, macOS 10.15+, or Linux
-- **Python**: Version 3.8 or higher
-- **Memory**: 8GB RAM minimum (16GB+ recommended for GPU)
-- **Storage**: 5GB free space (for model checkpoints and results)
-- **GPU** (Optional but recommended): NVIDIA GPU with CUDA support for faster training/inference
-
-### Required Software
-
-1. **Python 3.8+**: Download from [python.org](https://www.python.org/downloads/)
-2. **Git** (optional): For cloning repositories
-3. **Text Editor**: VS Code recommended for editing configs
-
----
-
-## Installation
 
 ### Step 1: Navigate to Project Folder
 
-```powershell
-cd "c:\Users\mlaitenberger\OneDrive - Deloitte (O365D)\Desktop\Scenario_Project\scenario_generation"
-```
 
 ### Step 2: Install Python Dependencies
 
-```powershell
-pip install torch numpy pandas scikit-learn matplotlib pyyaml
+```bash
+pip install torch numpy pandas scikit-learn matplotlib pyyaml einops ema-pytorch tqdm
 ```
 
-**For GPU support** (NVIDIA only):
-```powershell
-pip install torch --index-url https://download.pytorch.org/whl/cu118
+**For GPU support** (NVIDIA CUDA):
+```bash
+# First check your CUDA version
+nvidia-smi  # Look for "CUDA Version: 11.8" or similar
+
+# Install PyTorch with matching CUDA version
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118  # For CUDA 11.8
+# Or visit: https://pytorch.org/get-started/locally/
 ```
 
-### Step 3: Verify Installation
+### Step 3: Verify Installation and GPU
 
-```powershell
-python scripts/check_imports_deps.py
+```bash
+python scripts/check_gpu.py
 ```
 
 Expected output:
 ```
-✓ torch imported successfully
-✓ numpy imported successfully
-✓ pandas imported successfully
-✓ sklearn imported successfully
-✓ matplotlib imported successfully
-✓ yaml imported successfully
-All dependencies installed correctly!
+============================================================
+DEPENDENCY & GPU VERIFICATION
+============================================================
+
+[1/6] Checking core dependencies...
+  ✓ NumPy 1.24.3
+  ✓ Pandas 2.0.2
+  ✓ scikit-learn 1.3.0
+  ✓ Matplotlib 3.7.1
+  ✓ PyYAML
+  ✓ tqdm 4.65.0
+
+[2/6] Checking PyTorch...
+  ✓ PyTorch 2.1.0
+
+[3/6] Checking Diffusion-TS dependencies...
+  ✓ einops 0.7.0
+  ✓ ema-pytorch
+
+[4/6] Checking CUDA/GPU availability...
+  CUDA available: True
+  CUDA version: 11.8
+  Number of GPUs: 1
+  
+  GPU 0:
+    Name: Tesla V100-SXM2-16GB
+    Memory: 16.00 GB
+    Compute capability: 7.0
+
+[5/6] Testing GPU tensor operations...
+  ✓ Matrix multiplication on GPU successful
+  ✓ GPU memory allocated: 7.63 MB
+
+============================================================
+SUMMARY
+============================================================
+✓ All dependencies installed
+✓ GPU acceleration available: 1 GPU(s)
+✓ Primary device: cuda:0 (Tesla V100-SXM2-16GB)
+
+You can run training with GPU acceleration!
+============================================================
 ```
+
+**If you see "No CUDA GPUs detected"**: The code will still work but will use CPU (much slower).
 
 ---
 
@@ -81,16 +98,9 @@ All dependencies installed correctly!
 Your historical CSV must have:
 - **First row**: Feature names (header)
 - **Subsequent rows**: Time series values (one row per time step)
-- **Columns**: One per feature (e.g., GDP, Unemployment, Inflation)
+- **Columns**: One per feature 
 
-**Example** (`data/germany_macro_augemented.csv`):
-```csv
-GDP,Unemployment,Inflation,InterestRate,ExchangeRate,...
-1000.5,5.2,2.1,1.5,1.18,...
-1015.3,5.1,2.3,1.6,1.19,...
-1020.8,5.0,2.4,1.7,1.20,...
-...
-```
+
 
 **Requirements**:
 - All values must be numeric (float or int)
@@ -104,14 +114,6 @@ Your stress CSV defines the conditional values you want to impose:
 - **Length**: Typically equals `seq_length` or the stressed portion
 - **Values**: Absolute values (not relative changes)
 
-**Example** (`data/germany_stress_boom.csv`):
-```csv
-GDP,Unemployment,Inflation,InterestRate,ExchangeRate,...
-1050.0,4.5,2.5,1.8,1.22,...
-1055.0,4.3,2.6,1.9,1.23,...
-1060.0,4.1,2.7,2.0,1.24,...
-...
-```
 
 **Interpretation**:
 - Row 1: Stressed values at first stressed time step
@@ -336,171 +338,3 @@ for step in stressed_steps:
 Expected: Values should match closely.
 
 ---
-
-## Common Workflows
-
-### Workflow 1: Evaluate Multiple Checkpoints
-
-Compare model quality at different training stages:
-
-```powershell
-# Generate with checkpoint 5
-python scripts/run_handler_real.py --milestone "5" --results-folder results/ckpt5 ...
-
-# Generate with checkpoint 10
-python scripts/run_handler_real.py --milestone "10" --results-folder results/ckpt10 ...
-
-# Plot both
-python scripts/plot_generated.py --samples-path results/ckpt5/samples_absolute.npy --output-pdf results/ckpt5_plot.pdf ...
-python scripts/plot_generated.py --samples-path results/ckpt10/samples_absolute.npy --output-pdf results/ckpt10_plot.pdf ...
-```
-
-Visual inspection: Which checkpoint produces more realistic scenarios?
-
----
-
-### Workflow 2: Sensitivity Analysis on Stressed Features
-
-**Test 1**: Stress only GDP (feature 0)
-```powershell
---stressed-features "0" --stressed-seq-indices "12,13,...,23"
-```
-
-**Test 2**: Stress GDP + Unemployment (features 0, 1)
-```powershell
---stressed-features "0,1" --stressed-seq-indices "12,13,...,23"
-```
-
-**Test 3**: Stress all features (0 to 10)
-```powershell
---stressed-features "0,1,2,3,4,5,6,7,8,9,10" --stressed-seq-indices "12,13,...,23"
-```
-
-Compare PDFs: How does adding more constraints affect scenario diversity?
-
----
-
-### Workflow 3: Generate Baseline + Stress Comparison
-
-**Baseline (no stress)**:
-```powershell
-python scripts/run_handler_real.py --data-hist data/germany_macro.csv --results-folder results/baseline ...
-```
-
-**Stress (boom scenario)**:
-```powershell
-python scripts/run_handler_real.py --data-hist data/germany_macro.csv --data-stress data/stress_boom.csv --results-folder results/stress ...
-```
-
-**Overlay plots**: Use external tool (e.g., Python script) to plot both on same axes.
-
----
-
-## FAQ
-
-### Q: What if I get "CUDA out of memory"?
-
-**A**: Reduce batch size:
-```powershell
---batch-size 16
-```
-Or switch to CPU (slower):
-```python
-# In diffusion_ts_adapter.py, force CPU:
-device = torch.device('cpu')
-```
-
----
-
-### Q: How do I know if my checkpoint is good?
-
-**A**: Visual inspection via plots + quantitative metrics:
-1. **Visual**: Do samples look realistic? Match historical patterns?
-2. **Coverage**: Do samples span a reasonable range?
-3. **Conditioning**: Do stressed values appear in generated samples?
-
-For formal validation, compute:
-- Mean Absolute Error (MAE) on held-out test set
-- Distributional metrics (e.g., KL divergence, Wasserstein distance)
-
----
-
-### Q: Can I use daily data instead of monthly?
-
-**A**: Yes, adjust `seq_length` accordingly. For 2 years of daily data:
-```powershell
---seq-length 730  # ~2 years
-```
-
-**Note**: Longer sequences require more memory and training time.
-
----
-
-### Q: How do I add new features to the CSV?
-
-**A**:
-1. Add column to historical and stress CSVs
-2. Increment `--feature-size`:
-   ```powershell
-   --feature-size 12  # was 11
-   ```
-3. Update `feature_names` in plot script if desired:
-   ```powershell
-   --feature-names "GDP,Unemployment,Inflation,...,NewFeature"
-   ```
-
----
-
-### Q: What if training is too slow?
-
-**A**:
-- Use GPU (10-20x faster than CPU)
-- Reduce `max_epochs` in `diffusion_config.yaml`
-- Reduce data size (use fewer historical rows)
-- Lower model complexity (`d_model`, `n_layer_enc/dec`)
-
----
-
-### Q: Can I use this for non-macroeconomic data?
-
-**A**: Absolutely! The framework is domain-agnostic. Use it for:
-- Financial time series (stock prices, returns)
-- Energy load forecasting
-- Climate data (temperature, precipitation)
-- IoT sensor data
-
-Just ensure your CSV follows the required format.
-
----
-
-### Q: How do I cite this in a report?
-
-**A**:
-```
-Scenario Generation Framework (2026). 
-Diffusion-based stress scenario generation using Diffusion-TS.
-https://github.com/yourusername/scenario_generation
-```
-
----
-
-## Next Steps
-
-1. **Explore**: Run multiple scenarios with different stress conditions
-2. **Validate**: Compare generated samples to expert-defined scenarios
-3. **Integrate**: Use outputs in downstream risk models (e.g., stress testing, portfolio optimization)
-4. **Extend**: Add new adapters for alternative generative models (GANs, VAEs)
-
-For architectural details, see **ARCHITECTURE.md**.
-
-For API reference, see **README.md**.
-
----
-
-**Questions or Issues?**
-- Open an issue on GitHub
-- Email: your.email@example.com
-
----
-
-**Last Updated**: January 13, 2026
