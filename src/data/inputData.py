@@ -76,16 +76,23 @@ class InputData:
         Returns array shape (1, seq_length, n_features)
         """
         n_features = self.data_hist_rel_norm.shape[1]
+        
+        # If len_historie is None and we have overlapping sequences, default to half the sequence length
+        if len_historie is None and self.overlapping_sequences is not None:
+            len_historie = self.overlapping_sequences.shape[1] // 2
+        
         if seq_length is None:
             # try to derive from existing overlapping sequences, else use len_historie + stress length
             if self.overlapping_sequences is not None:
                 seq_length = self.overlapping_sequences.shape[1]
             else:
+                if len_historie is None:
+                    raise ValueError("len_historie must be provided when overlapping_sequences is None")
                 seq_length = len_historie + (self.data_stress_rel.shape[0] if self.data_stress_rel is not None else 0)
 
         forcast_seq = np.zeros((1, seq_length, n_features))
         # copy last len_historie steps from the most recent overlapping sequence
-        if self.overlapping_sequences is not None:
+        if self.overlapping_sequences is not None and len_historie is not None:
             last_hist = self.overlapping_sequences[-1, -len_historie:, :]
             forcast_seq[0, :len_historie, :] = last_hist
 
@@ -115,7 +122,6 @@ class InputData:
                     continue
                 for f in stressed_features:
                     forcast_seq[0, idx, f] = stress[k, f]
-        print(forcast_seq)
         return forcast_seq
 
         

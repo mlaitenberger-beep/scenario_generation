@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import sys
+import pandas as pd
 from data.inputData import InputData
 
 # Delay heavy/third-party imports until methods are called. Importing torch
@@ -140,8 +141,10 @@ class Diffusion_ts_adapter(ModelAdapter):
         Steps:
         - Convert from [-1, 1] back to [0, 1]
         - Inverse transform via the fitted MinMaxScaler (fit on historical relative changes)
+        - Optionally save aggregated absolute values to a single CSV when
+          `output_csv_path` is provided in the config.
 
-        Returns a numpy array with the same shape as `samples`.
+        Returns a numpy array with the same shape as `samples` (relative changes).
         """
         if samples is None:
             return None
@@ -157,16 +160,38 @@ class Diffusion_ts_adapter(ModelAdapter):
 
         flat = samples.reshape(-1, feat)
         flat_01 = _unnormalize_to_zero_to_one(flat)
-        
-        # Debug: print scaler bounds and sample statistics
-        print(f"[DEBUG] Scaler min: {self.scalar.data_min_}")
-        print(f"[DEBUG] Scaler max: {self.scalar.data_max_}")
-        print(f"[DEBUG] Scaler range (max - min): {self.scalar.data_max_ - self.scalar.data_min_}")
-        print(f"[DEBUG] Sample min (after unnormalize): {flat_01.min()}, max: {flat_01.max()}")
-        
+
         denorm_flat = self.scalar.inverse_transform(flat_01)
-        
-        print(f"[DEBUG] Denormalized min: {denorm_flat.min()}, max: {denorm_flat.max()}")
         denorm = denorm_flat.reshape(samples.shape)
+
+        # Optionally write all samples as absolute values into one CSV for downstream tools
+        output_csv_path = self.config.get('output_csv_path')
+        if output_csv_path:
+            hist_path = self.config.get('data_hist_path')
+            if hist_path is None:
+                raise ValueError("output_csv_path is set but data_hist_path is missing; required to reconstruct absolute values.")
+
+            hist_df = pd.read_csv(hist_path, header=0, dtype=float)
+            last_hist_values = hist_df.iloc[-1].to_numpy()[:feat]
+
+            samples_abs = np.zeros_like(denorm)
+            for i in range(denorm.shape[0]):
+                current = last_hist_values.copy()
+                for t in range(denorm.shape[1]):
+                    current = current * (1.0 + denorm[i, t, :])
+                    samples_abs[i, t, :] = current
+
+            # Long format: sample_id, time_idx, feature columns
+            seq_len = samples_abs.shape[1]
+            records = []
+            for sample_id in range(samples_abs.shape[0]):
+                for t in range(seq_len):
+                    records.append([sample_id, t, *samples_abs[sample_id, t, :]])
+
+            headers = ['sample_id', 'time_idx'] + list(hist_df.columns[:feat])
+            os.makedirs(os.path.dirname(output_csv_path), exist_ok=True)
+            pd.DataFrame(records, columns=headers).to_csv(output_csv_path, index=False)
+            print(f"Saved aggregated absolute samples to {output_csv_path}")
+
         return denorm
 

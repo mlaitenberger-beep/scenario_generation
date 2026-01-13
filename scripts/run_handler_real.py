@@ -49,6 +49,7 @@ def main():
     p.add_argument('--stressed-seq-indices', default=None, help='Comma-separated list of indices in forecast sequence to stress (required if --stressed-features is set)')
     p.add_argument('--len-historie', type=int, default=None, help='Length of history to use when preparing forecast sequence')
     p.add_argument('--no-save', action='store_true', help='Do not save samples; just run and print shapes')
+    p.add_argument('--output-csv', default=None, help='Optional path to aggregated absolute samples CSV; if set, adapter will write a long-format CSV')
     args = p.parse_args()
 
     # Validate: if stressed-features is set, stressed-seq-indices must also be set
@@ -71,6 +72,7 @@ def main():
         'stressed_features': parse_int_list(args.stressed_features),
         'stressed_seq_indices': parse_int_list(args.stressed_seq_indices),
         'len_historie': args.len_historie,
+        'output_csv_path': args.output_csv,
     }
 
     os.makedirs(args.results_folder, exist_ok=True)
@@ -115,13 +117,6 @@ def main():
                 abs_npy_path = os.path.join(args.results_folder, 'samples_absolute.npy')
                 np.save(abs_npy_path, samples_abs)
                 print(f'Saved absolute-value samples to {abs_npy_path}')
-                
-                # Save individual CSV files (absolute values)
-                n = samples_abs.shape[0]
-                for i in range(n):
-                    csv_path = os.path.join(args.results_folder, f'sample_{i}.csv')
-                    np.savetxt(csv_path, samples_abs[i], delimiter=',')
-                print(f'Saved {n} sample CSVs (absolute values) to {args.results_folder}')
             except Exception as e:
                 print('Failed to save absolute value samples:', e)
 

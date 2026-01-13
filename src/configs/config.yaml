@@ -1,6 +1,7 @@
 seq_length: 24
 feature_size: 5
 results_folder: 
+output_csv_path: results/my_run/samples_absolute_long.csv
 num_samples: 1000
 stressed_features: [0, 1]
 stressed_seq_indices: [6,7,8,9,10]
