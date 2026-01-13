@@ -22,24 +22,25 @@ class ModelAdapter:
             self.adapter = Diffusion_ts_adapter(diffusion_cfg_path, self.config)
         
     def load_model(self):
-        #Wa ist mit bereits trainierten modellen
-        # prepare data and create trainer/model
+        # Prepare data and create trainer/model
         self.adapter.data_input()
         self.trainer = self.adapter.load_model()
+
     def train(self):
-        # train or resume using trainer; adapter may return an updated trainer
+        # Train or resume using trainer; adapter may return an updated trainer
         self.trainer = self.adapter.train(self.trainer)
+
     def predict(self):
-        # pass trainer into predict
+        # Pass trainer into predict
         self.sample = self.adapter.predict(self.trainer)
 
-
-    def create_model_config(self,config=None):
-        # allow passing an override config dict; merge into existing config
+    def create_model_config(self, config=None):
+        # Allow passing an override config dict; merge into existing config
         if config is not None:
             self.config.update(config)
         self.model_config = self.adapter.create_model_config()
         return self.model_config
+
     def data_output(self):
         # Convert normalized model outputs back to original scale
         self.sample_denorm = self.adapter.data_output(self.sample)

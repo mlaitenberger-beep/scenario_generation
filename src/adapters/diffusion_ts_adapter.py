@@ -84,7 +84,6 @@ class Diffusion_ts_adapter(ModelAdapter):
 
     def load_model(self):
         # build dataloader from prepared historical sequences
-        # build dataloader from prepared historical sequences
         hist_dataset = CustomDataset(data=self.data_hist)
 
         # import torch and Diffusion-TS internals lazily
